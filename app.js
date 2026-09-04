@@ -71,6 +71,8 @@ let notes = [];       // [{date, text}]
 let trips = [];       // [{id, date, time, contactId, personName, fromAddress, toAddress, km, notes, status, doneAt, order}]
 let dayMetas = [];    // [{date, location, startTime}]
 let activeFilter = 'Tous';
+let activeFilterCast = 'Tous';
+let searchQueryCast = '';
 let searchQuery = '';
 let editingContactId = null;
 let editingTripId = null;
@@ -100,6 +102,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   renderChips();
   renderContacts();
+  renderChipsCast();
+  renderCastList();
   initNotesView();
   initTripsView();
   bindEvents();
@@ -129,17 +133,19 @@ function switchView(view){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.querySelectorAll('.view').forEach(v => v.hidden = true);
   document.getElementById('view-' + view).hidden = false;
-  document.getElementById('fab').hidden = (view !== 'contacts' && view !== 'trips');
-  const titles = { contacts: 'Contacts', trips: 'Trajets', notes: 'Notes du jour', settings: 'Réglages' };
+  document.getElementById('fab').hidden = !(view === 'contacts' || view === 'cast' || view === 'trips');
+  const titles = { contacts: 'Crew List', cast: 'Comédiens', trips: 'Trajets', notes: 'Notes du jour', settings: 'Réglages' };
   document.getElementById('topbarTitle').textContent = titles[view];
 }
 
 /* =========================================================
-   Liste des contacts
+   Liste des contacts (Crew List + Comédiens)
    ========================================================= */
+const CREW_CATEGORIES = CATEGORIES.filter(c => c !== 'Comédien');
+
 function renderChips(){
   const row = document.getElementById('chipRow');
-  const cats = ['Tous', 'Favoris', ...CATEGORIES];
+  const cats = ['Tous', 'Favoris', ...CREW_CATEGORIES];
   row.innerHTML = '';
   cats.forEach(cat => {
     const chip = document.createElement('button');
@@ -154,8 +160,40 @@ function renderChips(){
   });
 }
 
+function renderChipsCast(){
+  const row = document.getElementById('chipRowCast');
+  const cats = ['Tous', 'Favoris'];
+  row.innerHTML = '';
+  cats.forEach(cat => {
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (cat === activeFilterCast ? ' active' : '');
+    chip.textContent = cat;
+    chip.addEventListener('click', () => {
+      activeFilterCast = cat;
+      renderChipsCast();
+      renderCastList();
+    });
+    row.appendChild(chip);
+  });
+}
+
+function searchMatch(c, q){
+  return (c.name || '').toLowerCase().includes(q) ||
+    (c.character || '').toLowerCase().includes(q) ||
+    (c.category || '').toLowerCase().includes(q) ||
+    (c.phone || '').toLowerCase().includes(q) ||
+    (c.notes || '').toLowerCase().includes(q);
+}
+
+function sortContacts(list){
+  return list.sort((a, b) => {
+    if (!!b.favorite !== !!a.favorite) return b.favorite ? 1 : -1;
+    return (a.name || '').localeCompare(b.name || '', 'fr');
+  });
+}
+
 function filteredContacts(){
-  let list = contacts.slice();
+  let list = contacts.filter(c => c.category !== 'Comédien');
   if (activeFilter === 'Favoris') {
     list = list.filter(c => c.favorite);
   } else if (activeFilter !== 'Tous') {
@@ -163,30 +201,93 @@ function filteredContacts(){
   }
   if (searchQuery.trim()) {
     const q = searchQuery.trim().toLowerCase();
-    list = list.filter(c =>
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.character || '').toLowerCase().includes(q) ||
-      (c.category || '').toLowerCase().includes(q) ||
-      (c.phone || '').toLowerCase().includes(q) ||
-      (c.notes || '').toLowerCase().includes(q)
-    );
+    list = list.filter(c => searchMatch(c, q));
   }
-  list.sort((a, b) => {
-    if (!!b.favorite !== !!a.favorite) return b.favorite ? 1 : -1;
-    return (a.name || '').localeCompare(b.name || '', 'fr');
-  });
-  return list;
+  return sortContacts(list);
+}
+
+function filteredCast(){
+  let list = contacts.filter(c => c.category === 'Comédien');
+  if (activeFilterCast === 'Favoris') {
+    list = list.filter(c => c.favorite);
+  }
+  if (searchQueryCast.trim()) {
+    const q = searchQueryCast.trim().toLowerCase();
+    list = list.filter(c => searchMatch(c, q));
+  }
+  return sortContacts(list);
+}
+
+function buildContactCard(c){
+  const card = document.createElement('div');
+  card.className = 'contact-card';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  if (c.photo) {
+    const img = document.createElement('img');
+    img.src = c.photo;
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = c.category === 'Comédien' ? '🎭' : '👤';
+  }
+
+  const main = document.createElement('div');
+  main.className = 'contact-main';
+  const nameRow = document.createElement('div');
+  nameRow.className = 'contact-name-row';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'contact-name';
+  nameEl.textContent = c.name;
+  nameRow.appendChild(nameEl);
+  if (c.favorite) {
+    const star = document.createElement('span');
+    star.className = 'contact-star';
+    star.textContent = '⭐';
+    nameRow.appendChild(star);
+  }
+  main.appendChild(nameRow);
+
+  const sub = document.createElement('div');
+  sub.className = 'contact-sub';
+  if (c.category === 'Comédien' && c.character) {
+    sub.textContent = c.character;
+  } else {
+    const jobTitle = c.notes ? c.notes.split(' — ')[0] : '';
+    sub.textContent = jobTitle && c.phone ? `${jobTitle} · ${c.phone}` : (jobTitle || c.phone || '');
+  }
+  main.appendChild(sub);
+
+  const tag = document.createElement('div');
+  tag.className = 'contact-tag';
+  tag.textContent = c.category || '';
+  main.appendChild(tag);
+
+  main.addEventListener('click', () => openContactModal(c.id));
+
+  const callBtn = document.createElement('a');
+  callBtn.className = 'call-btn' + (c.phone ? ' enabled' : '');
+  callBtn.textContent = '📞';
+  if (c.phone) {
+    callBtn.href = 'tel:' + c.phone.replace(/\s+/g, '');
+  }
+  callBtn.addEventListener('click', e => e.stopPropagation());
+
+  card.appendChild(avatar);
+  card.appendChild(main);
+  card.appendChild(callBtn);
+  return card;
 }
 
 function renderContacts(){
   const listEl = document.getElementById('contactList');
   const emptyEl = document.getElementById('emptyContacts');
   const list = filteredContacts();
+  const totalCrew = contacts.filter(c => c.category !== 'Comédien').length;
 
   listEl.innerHTML = '';
-  emptyEl.hidden = list.length !== 0 || (contacts.length !== 0);
 
-  if (contacts.length === 0) {
+  if (totalCrew === 0) {
     listEl.hidden = true;
     emptyEl.hidden = false;
     return;
@@ -204,66 +305,36 @@ function renderContacts(){
     return;
   }
 
-  list.forEach(c => {
-    const card = document.createElement('div');
-    card.className = 'contact-card';
+  list.forEach(c => listEl.appendChild(buildContactCard(c)));
+}
 
-    const avatar = document.createElement('div');
-    avatar.className = 'avatar';
-    if (c.photo) {
-      const img = document.createElement('img');
-      img.src = c.photo;
-      avatar.appendChild(img);
-    } else {
-      avatar.textContent = c.category === 'Comédien' ? '🎭' : '👤';
-    }
+function renderCastList(){
+  const listEl = document.getElementById('contactListCast');
+  const emptyEl = document.getElementById('emptyContactsCast');
+  const list = filteredCast();
+  const totalCast = contacts.filter(c => c.category === 'Comédien').length;
 
-    const main = document.createElement('div');
-    main.className = 'contact-main';
-    const nameRow = document.createElement('div');
-    nameRow.className = 'contact-name-row';
-    const nameEl = document.createElement('span');
-    nameEl.className = 'contact-name';
-    nameEl.textContent = c.name;
-    nameRow.appendChild(nameEl);
-    if (c.favorite) {
-      const star = document.createElement('span');
-      star.className = 'contact-star';
-      star.textContent = '⭐';
-      nameRow.appendChild(star);
-    }
-    main.appendChild(nameRow);
+  listEl.innerHTML = '';
 
-    const sub = document.createElement('div');
-    sub.className = 'contact-sub';
-    if (c.category === 'Comédien' && c.character) {
-      sub.textContent = c.character;
-    } else {
-      const jobTitle = c.notes ? c.notes.split(' — ')[0] : '';
-      sub.textContent = jobTitle && c.phone ? `${jobTitle} · ${c.phone}` : (jobTitle || c.phone || '');
-    }
-    main.appendChild(sub);
+  if (totalCast === 0) {
+    listEl.hidden = true;
+    emptyEl.hidden = false;
+    return;
+  }
+  listEl.hidden = false;
+  emptyEl.hidden = true;
 
-    const tag = document.createElement('div');
-    tag.className = 'contact-tag';
-    tag.textContent = c.category || '';
-    main.appendChild(tag);
+  if (list.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'empty-sub';
+    p.style.textAlign = 'center';
+    p.style.padding = '30px 0';
+    p.textContent = 'Aucun comédien ne correspond.';
+    listEl.appendChild(p);
+    return;
+  }
 
-    main.addEventListener('click', () => openContactModal(c.id));
-
-    const callBtn = document.createElement('a');
-    callBtn.className = 'call-btn' + (c.phone ? ' enabled' : '');
-    callBtn.textContent = '📞';
-    if (c.phone) {
-      callBtn.href = 'tel:' + c.phone.replace(/\s+/g, '');
-    }
-    callBtn.addEventListener('click', e => e.stopPropagation());
-
-    card.appendChild(avatar);
-    card.appendChild(main);
-    card.appendChild(callBtn);
-    listEl.appendChild(card);
-  });
+  list.forEach(c => listEl.appendChild(buildContactCard(c)));
 }
 
 function bindEvents(){
@@ -271,9 +342,14 @@ function bindEvents(){
     searchQuery = e.target.value;
     renderContacts();
   });
+  document.getElementById('searchInputCast').addEventListener('input', e => {
+    searchQueryCast = e.target.value;
+    renderCastList();
+  });
   document.getElementById('fab').addEventListener('click', () => {
     if (currentView === 'trips') openTripModal(null);
-    else openContactModal(null);
+    else if (currentView === 'cast') openContactModal(null, 'Comédien');
+    else openContactModal(null, 'Production');
   });
 }
 
@@ -308,6 +384,7 @@ function bindModal(){
     contacts = contacts.filter(c => c.id !== editingContactId);
     closeContactModal();
     renderContacts();
+    renderCastList();
   });
 
   document.getElementById('contactForm').addEventListener('submit', async e => {
@@ -355,7 +432,7 @@ function updateCategoryFieldsVisibility(){
   document.getElementById('genericNotesWrap').hidden = isComedien;
 }
 
-function openContactModal(id){
+function openContactModal(id, defaultCategory){
   editingContactId = id;
   const form = document.getElementById('contactForm');
   form.reset();
@@ -384,7 +461,7 @@ function openContactModal(id){
   } else {
     title.textContent = 'Nouveau contact';
     deleteBtn.hidden = true;
-    document.getElementById('fieldCategory').value = 'Comédien';
+    document.getElementById('fieldCategory').value = defaultCategory || 'Comédien';
   }
   updatePhotoPreview();
   updateCategoryFieldsVisibility();
@@ -423,6 +500,7 @@ async function saveContactFromForm(){
 
   closeContactModal();
   renderContacts();
+  renderCastList();
 }
 
 /* =========================================================
@@ -978,6 +1056,7 @@ async function importBackup(e){
     trips = await idbGetAll('trips');
     dayMetas = await idbGetAll('daymeta');
     renderContacts();
+    renderCastList();
     renderNoteHistory();
     renderTripsView();
     alert('Import réussi.');
@@ -999,6 +1078,7 @@ async function wipeAllData(){
   trips = [];
   dayMetas = [];
   renderContacts();
+  renderCastList();
   loadNoteIntoEditor();
   renderNoteHistory();
   renderTripsView();
