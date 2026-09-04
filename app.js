@@ -4,7 +4,7 @@
    Stockage 100% local — IndexedDB. Rien ne quitte l'appareil.
    ========================================================= */
 const DB_NAME = 'tournage-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 let db;
 
 function openDB(){
@@ -24,6 +24,16 @@ function openDB(){
       }
       if (!d.objectStoreNames.contains('daymeta')) {
         d.createObjectStore('daymeta', { keyPath: 'date' }); // date = 'YYYY-MM-DD'
+      }
+      if (!d.objectStoreNames.contains('expenses')) {
+        const store = d.createObjectStore('expenses', { keyPath: 'id' });
+        store.createIndex('date', 'date', { unique: false });
+      }
+      if (!d.objectStoreNames.contains('checklist')) {
+        d.createObjectStore('checklist', { keyPath: 'date' }); // date = 'YYYY-MM-DD'
+      }
+      if (!d.objectStoreNames.contains('places')) {
+        d.createObjectStore('places', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => { db = req.result; resolve(db); };
@@ -70,6 +80,9 @@ let contacts = [];
 let notes = [];       // [{date, text}]
 let trips = [];       // [{id, date, time, contactId, personName, fromAddress, toAddress, km, notes, status, doneAt, order}]
 let dayMetas = [];    // [{date, location, startTime}]
+let expenses = [];    // [{id, date, category, amount, note, photo}]
+let checklists = [];  // [{date, essence, huile, pneus, proprete}]
+let places = [];      // [{id, name, address, category}]
 let activeFilter = 'Tous';
 let activeFilterCast = 'Tous';
 let searchQueryCast = '';
@@ -106,6 +119,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   notes = await idbGetAll('notes');
   trips = await idbGetAll('trips');
   dayMetas = await idbGetAll('daymeta');
+  expenses = await idbGetAll('expenses');
+  checklists = await idbGetAll('checklist');
+  places = await idbGetAll('places');
 
   renderChips();
   renderContacts();
@@ -113,6 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderCastList();
   initNotesView();
   initTripsView();
+  initExpensesView();
   bindEvents();
   bindTabs();
   bindModal();
@@ -120,6 +137,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindSettings();
   bindCallSheet();
   bindContactDetail();
+  bindPlaces();
+  renderPlacesList();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
@@ -396,6 +415,7 @@ function bindEvents(){
   });
   document.getElementById('fab').addEventListener('click', () => {
     if (currentView === 'trips') openTripModal(null);
+    else if (currentView === 'expenses') openExpenseModal(null);
     else if (currentView === 'cast') openContactModal(null, 'Comédien');
     else openContactModal(null, 'Production');
   });
@@ -785,10 +805,47 @@ function initTripsView(){
     document.getElementById('view-trips-history').hidden = true;
     document.getElementById('view-trips').hidden = false;
     document.getElementById('fab').hidden = false;
+    currentView = 'trips';
     document.getElementById('topbarTitle').textContent = 'Trajets';
   });
 
+  document.getElementById('showExpensesBtn').addEventListener('click', () => {
+    document.getElementById('view-trips').hidden = true;
+    document.getElementById('view-expenses').hidden = false;
+    currentView = 'expenses';
+    document.getElementById('topbarTitle').textContent = 'Notes de frais';
+    document.getElementById('expenseDateInput').value = currentTripsDate;
+    renderExpensesView();
+  });
+
+  bindChecklist();
   renderTripsView();
+}
+
+/* ---- Checklist véhicule ---- */
+function getChecklist(date){
+  return checklists.find(c => c.date === date) || { date, essence: false, huile: false, pneus: false, proprete: false };
+}
+
+function bindChecklist(){
+  document.querySelectorAll('.checklist-item').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const key = btn.dataset.key;
+      const entry = { ...getChecklist(currentTripsDate) };
+      entry[key] = !entry[key];
+      await idbPut('checklist', entry);
+      const idx = checklists.findIndex(c => c.date === currentTripsDate);
+      if (idx >= 0) checklists[idx] = entry; else checklists.push(entry);
+      renderChecklist();
+    });
+  });
+}
+
+function renderChecklist(){
+  const entry = getChecklist(currentTripsDate);
+  document.querySelectorAll('.checklist-item').forEach(btn => {
+    btn.classList.toggle('active', !!entry[btn.dataset.key]);
+  });
 }
 
 function getDayMeta(date){
@@ -828,6 +885,7 @@ function renderTripsView(){
   const meta = getDayMeta(currentTripsDate);
   document.getElementById('dayMetaLocation').value = meta.location || '';
   document.getElementById('dayMetaStartTime').value = meta.startTime || '';
+  renderChecklist();
 
   const list = tripsForDate(currentTripsDate);
   const listEl = document.getElementById('tripList');
@@ -1154,12 +1212,378 @@ function renderTripHistory(){
 }
 
 /* =========================================================
+   Notes de frais
+   ========================================================= */
+let editingExpenseId = null;
+let currentExpensePhotoDataUrl = null;
+
+function initExpensesView(){
+  const dateInput = document.getElementById('expenseDateInput');
+  dateInput.value = currentTripsDate;
+  dateInput.addEventListener('change', () => {
+    currentTripsDate = dateInput.value;
+    document.getElementById('tripDateInput').value = currentTripsDate;
+    renderExpensesView();
+  });
+
+  document.getElementById('expenseTodayBtn').addEventListener('click', () => {
+    currentTripsDate = todayStr();
+    dateInput.value = currentTripsDate;
+    document.getElementById('tripDateInput').value = currentTripsDate;
+    renderExpensesView();
+  });
+
+  document.getElementById('showExpenseHistoryBtn').addEventListener('click', () => {
+    document.getElementById('view-expenses').hidden = true;
+    document.getElementById('view-expense-history').hidden = false;
+    document.getElementById('fab').hidden = true;
+    document.getElementById('topbarTitle').textContent = 'Historique des frais';
+    renderExpenseHistory();
+  });
+  document.getElementById('backFromExpenseHistoryBtn').addEventListener('click', () => {
+    document.getElementById('view-expense-history').hidden = true;
+    document.getElementById('view-expenses').hidden = false;
+    document.getElementById('fab').hidden = false;
+    currentView = 'expenses';
+    document.getElementById('topbarTitle').textContent = 'Notes de frais';
+  });
+
+  bindExpenseModal();
+}
+
+function expensesForDate(date){
+  return expenses.filter(e => e.date === date).sort((a, b) => (b.id || '').localeCompare(a.id || ''));
+}
+
+function renderExpensesView(){
+  const list = expensesForDate(currentTripsDate);
+  const listEl = document.getElementById('expenseList');
+  const emptyEl = document.getElementById('emptyExpenses');
+  listEl.innerHTML = '';
+
+  if (list.length === 0) {
+    emptyEl.hidden = false;
+    return;
+  }
+  emptyEl.hidden = true;
+
+  list.forEach(e => listEl.appendChild(buildExpenseCard(e)));
+}
+
+function buildExpenseCard(e){
+  const card = document.createElement('div');
+  card.className = 'expense-card';
+
+  const thumb = document.createElement('div');
+  thumb.className = 'expense-thumb';
+  if (e.photo) {
+    const img = document.createElement('img');
+    img.src = e.photo;
+    thumb.appendChild(img);
+  } else {
+    thumb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M8 12.5h8M8 16h5.5"/></svg>';
+  }
+
+  const main = document.createElement('div');
+  main.className = 'expense-main';
+  const cat = document.createElement('div');
+  cat.className = 'expense-category';
+  cat.textContent = e.category;
+  main.appendChild(cat);
+  if (e.note) {
+    const note = document.createElement('div');
+    note.className = 'expense-note';
+    note.textContent = e.note;
+    main.appendChild(note);
+  }
+
+  const amount = document.createElement('div');
+  amount.className = 'expense-amount';
+  amount.textContent = e.amount ? `${e.amount.toFixed(2)} €` : '';
+
+  card.appendChild(thumb);
+  card.appendChild(main);
+  card.appendChild(amount);
+  card.addEventListener('click', () => openExpenseModal(e.id));
+  return card;
+}
+
+function bindExpenseModal(){
+  document.getElementById('closeExpenseModalBtn').addEventListener('click', closeExpenseModal);
+  document.getElementById('expenseModal').addEventListener('click', e => {
+    if (e.target.id === 'expenseModal') closeExpenseModal();
+  });
+
+  document.getElementById('expensePhotoInput').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    currentExpensePhotoDataUrl = await resizeImageToDataUrl(file, 500);
+    updateExpensePhotoPreview();
+  });
+  document.getElementById('removeExpensePhotoBtn').addEventListener('click', () => {
+    currentExpensePhotoDataUrl = null;
+    updateExpensePhotoPreview();
+  });
+
+  document.getElementById('deleteExpenseBtn').addEventListener('click', async () => {
+    if (!editingExpenseId) return;
+    if (!confirm('Supprimer cette dépense ?')) return;
+    await idbDelete('expenses', editingExpenseId);
+    expenses = expenses.filter(e => e.id !== editingExpenseId);
+    closeExpenseModal();
+    renderExpensesView();
+  });
+
+  document.getElementById('expenseForm').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    await saveExpenseFromForm();
+  });
+}
+
+function updateExpensePhotoPreview(){
+  const preview = document.getElementById('expensePhotoPreview');
+  const removeBtn = document.getElementById('removeExpensePhotoBtn');
+  if (currentExpensePhotoDataUrl) {
+    preview.innerHTML = `<img src="${currentExpensePhotoDataUrl}">`;
+    removeBtn.hidden = false;
+  } else {
+    preview.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M8 12.5h8M8 16h5.5"/></svg>';
+    removeBtn.hidden = true;
+  }
+}
+
+function openExpenseModal(id){
+  editingExpenseId = id;
+  const form = document.getElementById('expenseForm');
+  form.reset();
+  currentExpensePhotoDataUrl = null;
+
+  const title = document.getElementById('expenseModalTitle');
+  const deleteBtn = document.getElementById('deleteExpenseBtn');
+
+  if (id) {
+    const e = expenses.find(x => x.id === id);
+    title.textContent = 'Modifier la dépense';
+    deleteBtn.hidden = false;
+    document.getElementById('expenseFieldCategory').value = e.category || 'Autre';
+    document.getElementById('expenseFieldAmount').value = e.amount || '';
+    document.getElementById('expenseFieldNote').value = e.note || '';
+    currentExpensePhotoDataUrl = e.photo || null;
+  } else {
+    title.textContent = 'Nouvelle dépense';
+    deleteBtn.hidden = true;
+  }
+  updateExpensePhotoPreview();
+  document.getElementById('expenseModal').hidden = false;
+}
+
+function closeExpenseModal(){
+  document.getElementById('expenseModal').hidden = true;
+  editingExpenseId = null;
+}
+
+async function saveExpenseFromForm(){
+  const amountRaw = document.getElementById('expenseFieldAmount').value;
+  const expense = {
+    id: editingExpenseId || uid(),
+    date: currentTripsDate,
+    category: document.getElementById('expenseFieldCategory').value,
+    amount: amountRaw ? parseFloat(amountRaw) : 0,
+    note: document.getElementById('expenseFieldNote').value.trim(),
+    photo: currentExpensePhotoDataUrl,
+  };
+
+  await idbPut('expenses', expense);
+  const idx = expenses.findIndex(e => e.id === expense.id);
+  if (idx >= 0) expenses[idx] = expense; else expenses.push(expense);
+
+  closeExpenseModal();
+  renderExpensesView();
+}
+
+function renderExpenseHistory(){
+  const listEl = document.getElementById('expenseHistoryList');
+  const emptyEl = document.getElementById('emptyExpenseHistory');
+  const totalEl = document.getElementById('expenseHistoryTotal');
+  listEl.innerHTML = '';
+
+  const sorted = expenses.slice().sort((a, b) => b.date.localeCompare(a.date) || (b.id || '').localeCompare(a.id || ''));
+
+  if (sorted.length === 0) {
+    emptyEl.hidden = false;
+    totalEl.textContent = '';
+    return;
+  }
+  emptyEl.hidden = true;
+
+  const total = sorted.reduce((sum, e) => sum + (e.amount || 0), 0);
+  totalEl.textContent = total > 0 ? `${total.toFixed(2)} € au total` : '';
+
+  sorted.forEach(e => {
+    const item = document.createElement('div');
+    item.className = 'trip-history-item';
+
+    const dateEl = document.createElement('div');
+    dateEl.className = 'trip-history-date';
+    dateEl.textContent = formatDateFr(e.date);
+    item.appendChild(dateEl);
+
+    const routeEl = document.createElement('div');
+    routeEl.className = 'trip-history-route';
+    routeEl.textContent = `${e.category} — ${e.amount ? e.amount.toFixed(2) + ' €' : '0 €'}`;
+    item.appendChild(routeEl);
+
+    if (e.note) {
+      const metaEl = document.createElement('div');
+      metaEl.className = 'trip-history-meta';
+      metaEl.textContent = e.note;
+      item.appendChild(metaEl);
+    }
+
+    listEl.appendChild(item);
+  });
+}
+
+/* =========================================================
+   Lieux fréquents
+   ========================================================= */
+let editingPlaceId = null;
+let activePlacePickerTarget = null;
+
+function bindPlaces(){
+  document.getElementById('addPlaceBtn').addEventListener('click', () => openPlaceModal(null));
+  document.getElementById('closePlaceModalBtn').addEventListener('click', closePlaceModal);
+  document.getElementById('placeModal').addEventListener('click', e => {
+    if (e.target.id === 'placeModal') closePlaceModal();
+  });
+  document.getElementById('deletePlaceBtn').addEventListener('click', async () => {
+    if (!editingPlaceId) return;
+    if (!confirm('Supprimer ce lieu ?')) return;
+    await idbDelete('places', editingPlaceId);
+    places = places.filter(p => p.id !== editingPlaceId);
+    closePlaceModal();
+    renderPlacesList();
+  });
+  document.getElementById('placeForm').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    await savePlaceFromForm();
+  });
+
+  document.querySelectorAll('.field-pick-btn').forEach(btn => {
+    btn.addEventListener('click', () => openPlacePicker(btn.dataset.target));
+  });
+  document.getElementById('placePickerCancelBtn').addEventListener('click', closePlacePicker);
+  document.getElementById('placePickerModal').addEventListener('click', e => {
+    if (e.target.id === 'placePickerModal') closePlacePicker();
+  });
+}
+
+function renderPlacesList(){
+  const listEl = document.getElementById('placesList');
+  listEl.innerHTML = '';
+  if (places.length === 0) return;
+
+  places.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr')).forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'place-row';
+
+    const main = document.createElement('div');
+    main.className = 'place-row-main';
+    const name = document.createElement('div');
+    name.className = 'place-row-name';
+    name.textContent = p.name;
+    const addr = document.createElement('div');
+    addr.className = 'place-row-address';
+    addr.textContent = p.address;
+    main.appendChild(name);
+    main.appendChild(addr);
+
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'place-row-edit';
+    edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l.9-3.9L16.6 4.4a1.5 1.5 0 0 1 2.1 0l1 1a1.5 1.5 0 0 1 0 2.1L8 19.2 4 20z"/><path d="M14.5 6.5l3 3"/></svg>';
+
+    row.appendChild(main);
+    row.appendChild(edit);
+    row.addEventListener('click', () => openPlaceModal(p.id));
+    listEl.appendChild(row);
+  });
+}
+
+function openPlaceModal(id){
+  editingPlaceId = id;
+  const form = document.getElementById('placeForm');
+  form.reset();
+  const title = document.getElementById('placeModalTitle');
+  const deleteBtn = document.getElementById('deletePlaceBtn');
+
+  if (id) {
+    const p = places.find(x => x.id === id);
+    title.textContent = 'Modifier le lieu';
+    deleteBtn.hidden = false;
+    document.getElementById('placeFieldName').value = p.name || '';
+    document.getElementById('placeFieldAddress').value = p.address || '';
+  } else {
+    title.textContent = 'Nouveau lieu';
+    deleteBtn.hidden = true;
+  }
+  document.getElementById('placeModal').hidden = false;
+}
+
+function closePlaceModal(){
+  document.getElementById('placeModal').hidden = true;
+  editingPlaceId = null;
+}
+
+async function savePlaceFromForm(){
+  const name = document.getElementById('placeFieldName').value.trim();
+  const address = document.getElementById('placeFieldAddress').value.trim();
+  if (!name || !address) return;
+
+  const place = { id: editingPlaceId || uid(), name, address };
+  await idbPut('places', place);
+  const idx = places.findIndex(p => p.id === place.id);
+  if (idx >= 0) places[idx] = place; else places.push(place);
+
+  closePlaceModal();
+  renderPlacesList();
+}
+
+function openPlacePicker(targetId){
+  if (places.length === 0) {
+    alert("Aucun lieu enregistré pour l'instant. Ajoute-en un depuis Réglages → Lieux fréquents.");
+    return;
+  }
+  activePlacePickerTarget = targetId;
+  const listEl = document.getElementById('placePickerList');
+  listEl.innerHTML = '';
+  places.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr')).forEach(p => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'place-picker-item';
+    item.innerHTML = `<div class="place-picker-name">${escapeHtml(p.name)}</div><div class="place-picker-address">${escapeHtml(p.address)}</div>`;
+    item.addEventListener('click', () => {
+      document.getElementById(activePlacePickerTarget).value = p.address;
+      closePlacePicker();
+    });
+    listEl.appendChild(item);
+  });
+  document.getElementById('placePickerModal').hidden = false;
+}
+
+function closePlacePicker(){
+  document.getElementById('placePickerModal').hidden = true;
+  activePlacePickerTarget = null;
+}
+
+/* =========================================================
    Réglages : export / import / effacement
    ========================================================= */
 function bindSettings(){
   document.getElementById('exportBtn').addEventListener('click', exportBackup);
   document.getElementById('importInput').addEventListener('change', importBackup);
   document.getElementById('wipeBtn').addEventListener('click', wipeAllData);
+  document.getElementById('exportRecapBtn').addEventListener('click', exportRecap);
 }
 
 function exportBackup(){
@@ -1169,6 +1593,9 @@ function exportBackup(){
     notes,
     trips,
     dayMetas,
+    expenses,
+    checklists,
+    places,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1192,8 +1619,12 @@ async function importBackup(e){
     }
     const tripsData = Array.isArray(data.trips) ? data.trips : [];
     const dayMetasData = Array.isArray(data.dayMetas) ? data.dayMetas : [];
+    const expensesData = Array.isArray(data.expenses) ? data.expenses : [];
+    const checklistsData = Array.isArray(data.checklists) ? data.checklists : [];
+    const placesData = Array.isArray(data.places) ? data.places : [];
     let msg = `Importer ${data.contacts.length} contact(s) et ${data.notes.length} note(s)`;
     if (tripsData.length) msg += ` et ${tripsData.length} trajet(s)`;
+    if (expensesData.length) msg += ` et ${expensesData.length} dépense(s)`;
     msg += ' ? Cela fusionnera avec les données existantes.';
     if (!confirm(msg)) {
       e.target.value = '';
@@ -1203,14 +1634,21 @@ async function importBackup(e){
     for (const n of data.notes) await idbPut('notes', n);
     for (const t of tripsData) await idbPut('trips', t);
     for (const m of dayMetasData) await idbPut('daymeta', m);
+    for (const ex of expensesData) await idbPut('expenses', ex);
+    for (const cl of checklistsData) await idbPut('checklist', cl);
+    for (const pl of placesData) await idbPut('places', pl);
     contacts = await idbGetAll('contacts');
     notes = await idbGetAll('notes');
     trips = await idbGetAll('trips');
     dayMetas = await idbGetAll('daymeta');
+    expenses = await idbGetAll('expenses');
+    checklists = await idbGetAll('checklist');
+    places = await idbGetAll('places');
     renderContacts();
     renderCastList();
     renderNoteHistory();
     renderTripsView();
+    renderPlacesList();
     alert('Import réussi.');
   } catch (err) {
     alert('Le fichier de sauvegarde est invalide.');
@@ -1219,20 +1657,74 @@ async function importBackup(e){
 }
 
 async function wipeAllData(){
-  if (!confirm('Effacer définitivement tous les contacts, notes et trajets de cet appareil ? Cette action est irréversible.')) return;
+  if (!confirm('Effacer définitivement tous les contacts, notes, trajets, frais et lieux de cet appareil ? Cette action est irréversible.')) return;
   if (!confirm('Dernière confirmation : tout supprimer ?')) return;
   await idbClear('contacts');
   await idbClear('notes');
   await idbClear('trips');
   await idbClear('daymeta');
+  await idbClear('expenses');
+  await idbClear('checklist');
+  await idbClear('places');
   contacts = [];
   notes = [];
   trips = [];
   dayMetas = [];
+  expenses = [];
+  checklists = [];
+  places = [];
   renderContacts();
   renderCastList();
   loadNoteIntoEditor();
   renderNoteHistory();
   renderTripsView();
+  renderPlacesList();
   alert('Toutes les données ont été effacées.');
+}
+
+/* =========================================================
+   Export récapitulatif (PDF via impression)
+   ========================================================= */
+function buildPrintRecap(){
+  const doneTrips = trips
+    .filter(t => t.status === 'done')
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
+  const sortedExpenses = expenses.slice().sort((a, b) => a.date.localeCompare(b.date));
+
+  const totalKm = doneTrips.reduce((sum, t) => sum + (t.km || 0), 0);
+  const totalExpenses = sortedExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  let html = '<h1>Récapitulatif de tournage</h1>';
+  html += `<div class="recap-sub">Généré le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
+
+  html += '<h2>Trajets validés</h2>';
+  if (doneTrips.length === 0) {
+    html += '<p class="recap-empty">Aucun trajet validé.</p>';
+  } else {
+    html += '<table><thead><tr><th>Date</th><th>Heure</th><th>Personne</th><th>Trajet</th><th>Km</th></tr></thead><tbody>';
+    doneTrips.forEach(t => {
+      html += `<tr><td>${escapeHtml(formatDateFr(t.date))}</td><td>${escapeHtml(t.time || '')}</td><td>${escapeHtml(t.personName || '')}</td><td>${escapeHtml(t.fromAddress || '?')} → ${escapeHtml(t.toAddress || '?')}</td><td>${t.km || ''}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    html += `<div class="recap-total">Total : ${totalKm.toFixed(1)} km</div>`;
+  }
+
+  html += '<h2>Notes de frais</h2>';
+  if (sortedExpenses.length === 0) {
+    html += '<p class="recap-empty">Aucune dépense enregistrée.</p>';
+  } else {
+    html += '<table><thead><tr><th>Date</th><th>Catégorie</th><th>Note</th><th>Montant</th></tr></thead><tbody>';
+    sortedExpenses.forEach(e => {
+      html += `<tr><td>${escapeHtml(formatDateFr(e.date))}</td><td>${escapeHtml(e.category || '')}</td><td>${escapeHtml(e.note || '')}</td><td>${(e.amount || 0).toFixed(2)} €</td></tr>`;
+    });
+    html += '</tbody></table>';
+    html += `<div class="recap-total">Total : ${totalExpenses.toFixed(2)} €</div>`;
+  }
+
+  document.getElementById('printRecap').innerHTML = html;
+}
+
+function exportRecap(){
+  buildPrintRecap();
+  window.print();
 }

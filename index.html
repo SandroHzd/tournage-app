@@ -71,6 +71,16 @@
       </div>
     </div>
 
+    <div class="checklist-card">
+      <div class="checklist-title">Checklist véhicule</div>
+      <div id="checklistRow" class="checklist-row">
+        <button type="button" class="chip checklist-item" data-key="essence">Essence</button>
+        <button type="button" class="chip checklist-item" data-key="huile">Niveau huile</button>
+        <button type="button" class="chip checklist-item" data-key="pneus">Pression pneus</button>
+        <button type="button" class="chip checklist-item" data-key="proprete">Propreté</button>
+      </div>
+    </div>
+
     <div id="tripListWrap">
       <div id="tripList" class="trip-list"></div>
       <div id="emptyTrips" class="empty-state" hidden>
@@ -79,7 +89,38 @@
       </div>
     </div>
 
-    <button id="showHistoryBtn" class="btn btn-secondary history-link-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M8 12.5h8M8 16h5.5"/></svg>Historique des trajets validés</button>
+    <div class="trip-footer-actions">
+      <button id="showHistoryBtn" class="btn btn-secondary history-link-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M8 12.5h8M8 16h5.5"/></svg>Historique des trajets</button>
+      <button id="showExpensesBtn" class="btn btn-secondary history-link-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M9.5 9.8c0-1.1 1-1.8 2.3-1.8s2.5.7 2.5 1.8-.9 1.4-2.3 1.7c-1.6.3-2.5.8-2.5 1.9s1.1 1.8 2.5 1.8 2.3-.6 2.4-1.6"/></svg>Notes de frais</button>
+    </div>
+  </section>
+
+  <!-- ===== EXPENSES VIEW ===== -->
+  <section id="view-expenses" class="view" hidden>
+    <div class="note-editor-head trips-date-head">
+      <input id="expenseDateInput" type="date">
+      <button id="expenseTodayBtn" class="mini-btn">Aujourd'hui</button>
+    </div>
+    <div id="expenseListWrap">
+      <div id="expenseList" class="expense-list"></div>
+      <div id="emptyExpenses" class="empty-state" hidden>
+        <p>Aucun frais enregistré pour ce jour.</p>
+        <p class="empty-sub">Touche + pour ajouter une dépense.</p>
+      </div>
+    </div>
+    <button id="showExpenseHistoryBtn" class="btn btn-secondary history-link-btn">Historique complet des frais</button>
+  </section>
+
+  <!-- ===== EXPENSE HISTORY VIEW ===== -->
+  <section id="view-expense-history" class="view" hidden>
+    <div class="history-head">
+      <button id="backFromExpenseHistoryBtn" class="mini-btn">← Retour</button>
+      <div id="expenseHistoryTotal" class="history-total-km"></div>
+    </div>
+    <div id="expenseHistoryList" class="trip-history-list"></div>
+    <div id="emptyExpenseHistory" class="empty-state" hidden>
+      <p>Aucun frais enregistré pour l'instant.</p>
+    </div>
   </section>
 
   <!-- ===== TRIPS HISTORY VIEW ===== -->
@@ -117,6 +158,17 @@
     <div class="settings-block">
       <h2>Confidentialité</h2>
       <p class="settings-text">Aucune donnée ne quitte cet appareil : pas de serveur, pas de compte, pas de connexion internet requise. Tout est stocké localement dans ce navigateur.</p>
+    </div>
+    <div class="settings-block">
+      <h2>Lieux fréquents</h2>
+      <p class="settings-text">Enregistre les adresses que tu utilises souvent (hôtel équipe, bureau de prod, parking habituel...) pour les retrouver en un tap dans un trajet.</p>
+      <div id="placesList" class="places-list"></div>
+      <button id="addPlaceBtn" class="btn btn-secondary">+ Ajouter un lieu</button>
+    </div>
+    <div class="settings-block">
+      <h2>Récapitulatif</h2>
+      <p class="settings-text">Génère un document imprimable (ou exportable en PDF) avec tous les trajets validés et les frais enregistrés, pour ta note de frais de fin de tournage.</p>
+      <button id="exportRecapBtn" class="btn btn-secondary">Exporter le récapitulatif (PDF)</button>
     </div>
     <div class="settings-block">
       <h2>Sauvegarde</h2>
@@ -296,12 +348,18 @@
 
       <label class="field">
         <span>Départ</span>
-        <input id="tripFieldFrom" type="text" placeholder="Adresse de prise en charge" autocomplete="off">
+        <div class="field-with-btn">
+          <input id="tripFieldFrom" type="text" placeholder="Adresse de prise en charge" autocomplete="off">
+          <button type="button" class="field-pick-btn" data-target="tripFieldFrom" aria-label="Choisir un lieu fréquent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.7-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></button>
+        </div>
       </label>
 
       <label class="field">
         <span>Destination</span>
-        <input id="tripFieldTo" type="text" placeholder="Adresse d'arrivée" autocomplete="off">
+        <div class="field-with-btn">
+          <input id="tripFieldTo" type="text" placeholder="Adresse d'arrivée" autocomplete="off">
+          <button type="button" class="field-pick-btn" data-target="tripFieldTo" aria-label="Choisir un lieu fréquent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.7-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></button>
+        </div>
       </label>
 
       <label class="field">
@@ -313,6 +371,84 @@
         <span>Notes</span>
         <textarea id="tripFieldNotes" rows="2" placeholder="Toute info utile sur ce trajet"></textarea>
       </label>
+
+      <button type="submit" class="btn btn-primary save-btn">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== PLACE FORM MODAL ===== -->
+<div id="placeModal" class="modal" hidden>
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <button id="closePlaceModalBtn" class="icon-btn" aria-label="Fermer">✕</button>
+      <h2 id="placeModalTitle">Nouveau lieu</h2>
+      <button id="deletePlaceBtn" class="icon-btn danger" hidden aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15"/><path d="M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7"/><path d="M6.5 6.5 7.3 19a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12.5"/><path d="M10.3 10.5v6M13.7 10.5v6"/></svg></button>
+    </div>
+    <form id="placeForm">
+      <label class="field">
+        <span>Nom</span>
+        <input id="placeFieldName" type="text" placeholder="Ex : Hôtel équipe, Bureau de prod…" autocomplete="off" required>
+      </label>
+      <label class="field">
+        <span>Adresse</span>
+        <textarea id="placeFieldAddress" rows="2" placeholder="Adresse complète" required></textarea>
+      </label>
+      <button type="submit" class="btn btn-primary save-btn">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== PLACE PICKER SHEET ===== -->
+<div id="placePickerModal" class="modal" hidden>
+  <div class="modal-sheet call-sheet">
+    <div class="call-sheet-head">
+      <div class="call-sheet-name">Choisir un lieu</div>
+    </div>
+    <div id="placePickerList" class="place-picker-list"></div>
+    <button id="placePickerCancelBtn" type="button" class="call-sheet-cancel">Annuler</button>
+  </div>
+</div>
+
+<!-- ===== EXPENSE FORM MODAL ===== -->
+<div id="expenseModal" class="modal" hidden>
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <button id="closeExpenseModalBtn" class="icon-btn" aria-label="Fermer">✕</button>
+      <h2 id="expenseModalTitle">Nouvelle dépense</h2>
+      <button id="deleteExpenseBtn" class="icon-btn danger" hidden aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15"/><path d="M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7"/><path d="M6.5 6.5 7.3 19a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12.5"/><path d="M10.3 10.5v6M13.7 10.5v6"/></svg></button>
+    </div>
+    <form id="expenseForm">
+      <label class="field">
+        <span>Catégorie</span>
+        <select id="expenseFieldCategory">
+          <option value="Carburant">Carburant</option>
+          <option value="Parking">Parking</option>
+          <option value="Péage">Péage</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Montant (€)</span>
+        <input id="expenseFieldAmount" type="number" step="0.01" min="0" placeholder="Ex : 12.50" inputmode="decimal">
+      </label>
+
+      <label class="field">
+        <span>Note</span>
+        <input id="expenseFieldNote" type="text" placeholder="Ex : plein à la station Total" autocomplete="off">
+      </label>
+
+      <div class="photo-row">
+        <div id="expensePhotoPreview" class="photo-preview receipt-preview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M8 12.5h8M8 16h5.5"/></svg>
+        </div>
+        <label class="btn btn-secondary small-btn file-btn">
+          Photo du ticket
+          <input type="file" id="expensePhotoInput" accept="image/*" capture="environment" hidden>
+        </label>
+        <button type="button" id="removeExpensePhotoBtn" class="mini-btn" hidden>Retirer</button>
+      </div>
 
       <button type="submit" class="btn btn-primary save-btn">Enregistrer</button>
     </form>
@@ -335,6 +471,8 @@
     <button id="callSheetCancelBtn" type="button" class="call-sheet-cancel">Annuler</button>
   </div>
 </div>
+
+<div id="printRecap"></div>
 
 <script src="app.js"></script>
 </body>
