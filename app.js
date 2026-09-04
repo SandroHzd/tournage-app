@@ -169,9 +169,17 @@ function switchView(view){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.querySelectorAll('.view').forEach(v => v.hidden = true);
   document.getElementById('view-' + view).hidden = false;
-  document.getElementById('fab').hidden = !(view === 'contacts' || view === 'cast' || view === 'trips');
-  const titles = { contacts: 'Crew List', cast: 'Comédiens', trips: 'Trajets', notes: 'Notes du jour', settings: 'Réglages' };
+  document.getElementById('fab').hidden = !(view === 'contacts' || view === 'cast' || view === 'trips' || view === 'expenses');
+  const titles = { contacts: 'Crew List', cast: 'Comédiens', trips: 'Trajets', expenses: 'Notes de frais', notes: 'Notes du jour', settings: 'Réglages' };
   document.getElementById('topbarTitle').textContent = titles[view];
+  if (view === 'trips') {
+    document.getElementById('tripDateInput').value = currentTripsDate;
+    renderTripsView();
+  }
+  if (view === 'expenses') {
+    document.getElementById('expenseDateInput').value = currentTripsDate;
+    renderExpensesView();
+  }
 }
 
 /* =========================================================
@@ -807,15 +815,6 @@ function initTripsView(){
     document.getElementById('fab').hidden = false;
     currentView = 'trips';
     document.getElementById('topbarTitle').textContent = 'Trajets';
-  });
-
-  document.getElementById('showExpensesBtn').addEventListener('click', () => {
-    document.getElementById('view-trips').hidden = true;
-    document.getElementById('view-expenses').hidden = false;
-    currentView = 'expenses';
-    document.getElementById('topbarTitle').textContent = 'Notes de frais';
-    document.getElementById('expenseDateInput').value = currentTripsDate;
-    renderExpensesView();
   });
 
   bindChecklist();
