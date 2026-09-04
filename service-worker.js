@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tournage-cache-v6';
+const CACHE_NAME = 'tournage-cache-v7';
 const ASSETS = [
   './',
   './index.html',

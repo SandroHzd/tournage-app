@@ -93,6 +93,9 @@ const CATEGORIES = ['Comédien','Réalisation','Production','Régie / Transport'
 const ICON_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20c.7-4 3.5-6.2 7.5-6.2s6.8 2.2 7.5 6.2"/></svg>';
 const ICON_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.47 5.13 5.53.8-4 4.03.94 5.6L12 16.4l-4.94 2.66.94-5.6-4-4.03 5.53-.8L12 3.5z"/></svg>';
 const ICON_PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h3.2l1.3 4-2 1.4a11.5 11.5 0 0 0 5.6 5.6l1.4-2 4 1.3V18a1.5 1.5 0 0 1-1.6 1.5C10.6 19 5 13.4 4.5 6.6 4.4 5.5 5 4.5 5 4.5z"/></svg>';
+const ICON_MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4.5 7l7.5 6 7.5-6"/></svg>';
+const ICON_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.7-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
+const ICON_CHAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.2 6.4L4 19.5l1.1-3A7.96 7.96 0 0 1 4 12z"/></svg>';
 
 /* =========================================================
    Init
@@ -116,6 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindTripModal();
   bindSettings();
   bindCallSheet();
+  bindContactDetail();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});
@@ -268,7 +272,7 @@ function buildContactCard(c){
   tag.textContent = c.category || '';
   main.appendChild(tag);
 
-  main.addEventListener('click', () => openContactModal(c.id));
+  main.addEventListener('click', () => openContactDetail(c.id));
 
   const callBtn = document.createElement('button');
   callBtn.type = 'button';
@@ -466,6 +470,110 @@ function updateCategoryFieldsVisibility(){
   const isComedien = cat === 'Comédien';
   document.getElementById('comedienFields').hidden = !isComedien;
   document.getElementById('genericNotesWrap').hidden = isComedien;
+}
+
+/* ---- Fiche détail (lecture seule) ---- */
+function escapeHtml(str){
+  return (str || '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[ch]);
+}
+
+function extractEmail(text){
+  const m = (text || '').match(/[^\s—]+@[^\s—]+\.[^\s—]+/);
+  return m ? m[0].replace(/[.,;]+$/, '') : null;
+}
+
+let detailContactId = null;
+
+function bindContactDetail(){
+  document.getElementById('closeDetailBtn').addEventListener('click', closeContactDetail);
+  document.getElementById('contactDetailModal').addEventListener('click', e => {
+    if (e.target.id === 'contactDetailModal') closeContactDetail();
+  });
+  document.getElementById('editFromDetailBtn').addEventListener('click', () => {
+    const id = detailContactId;
+    closeContactDetail();
+    openContactModal(id);
+  });
+}
+
+function openContactDetail(id){
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  detailContactId = id;
+
+  const email = extractEmail(c.notes);
+  const jobTitle = (!c.character && c.notes) ? c.notes.split(' — ')[0] : '';
+  const notesWithoutEmail = (c.notes || '')
+    .split(' — ')
+    .filter(part => part !== email && part !== jobTitle)
+    .join(' — ');
+
+  const body = document.getElementById('detailBody');
+  let html = '';
+
+  html += '<div class="detail-header">';
+  html += '<div class="detail-avatar">' + (c.photo ? `<img src="${c.photo}">` : (c.category === 'Comédien' ? ICON_STAR : ICON_PERSON)) + '</div>';
+  html += '<div>';
+  html += `<div class="detail-name">${escapeHtml(c.name)}${c.favorite ? '<span class="contact-star">⭐</span>' : ''}</div>`;
+  if (c.character) html += `<div class="detail-sub">${escapeHtml(c.character)}</div>`;
+  else if (jobTitle) html += `<div class="detail-sub">${escapeHtml(jobTitle)}</div>`;
+  html += `<div class="detail-tag">${escapeHtml(c.category || '')}</div>`;
+  html += '</div></div>';
+
+  if (c.phone || email) {
+    html += '<div class="detail-actions">';
+    if (c.phone) {
+      html += `<button type="button" class="detail-action" id="detailCallAction">${ICON_PHONE}Appeler</button>`;
+      html += `<a class="detail-action" href="https://wa.me/${phoneToWhatsAppDigits(c.phone)}" target="_blank" rel="noopener">${ICON_CHAT}WhatsApp</a>`;
+    }
+    if (email) {
+      html += `<a class="detail-action" href="mailto:${email}">${ICON_MAIL}Email</a>`;
+    }
+    html += '</div>';
+  }
+
+  const rows = [];
+  if (c.phone) rows.push(['Téléphone', escapeHtml(c.phone)]);
+  if (email) rows.push(['Email', `<a href="mailto:${email}">${escapeHtml(email)}</a>`]);
+  if (rows.length) {
+    html += '<div class="detail-section">' + rows.map(([label, value]) =>
+      `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>`
+    ).join('') + '</div>';
+  }
+
+  if (c.category === 'Comédien') {
+    const castRows = [];
+    if (c.dressing) castRows.push(['Loge', escapeHtml(c.dressing)]);
+    if (c.callTime) castRows.push(['Convocation', escapeHtml(c.callTime)]);
+    if (c.pickupTime) castRows.push(['Prise en charge', escapeHtml(c.pickupTime)]);
+    if (castRows.length) {
+      html += '<div class="detail-section">' + castRows.map(([label, value]) =>
+        `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>`
+      ).join('') + '</div>';
+    }
+    if (c.pickupAddress) {
+      html += '<div class="detail-section-title">Adresse de prise en charge</div>';
+      html += `<div class="detail-section"><a class="detail-action" style="width:100%;flex-direction:row;justify-content:flex-start" href="https://maps.google.com/?q=${encodeURIComponent(c.pickupAddress)}" target="_blank" rel="noopener">${ICON_PIN}<span style="margin-left:8px">${escapeHtml(c.pickupAddress)}</span></a></div>`;
+    }
+  }
+
+  if (notesWithoutEmail.trim()) {
+    html += '<div class="detail-section-title">Notes</div>';
+    html += `<div class="detail-notes">${escapeHtml(notesWithoutEmail)}</div>`;
+  }
+
+  body.innerHTML = html;
+  const callAction = document.getElementById('detailCallAction');
+  if (callAction) callAction.addEventListener('click', () => openCallSheet(c.name, c.phone));
+
+  document.getElementById('contactDetailModal').hidden = false;
+}
+
+function closeContactDetail(){
+  document.getElementById('contactDetailModal').hidden = true;
+  detailContactId = null;
 }
 
 function openContactModal(id, defaultCategory){
