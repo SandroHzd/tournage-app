@@ -107,16 +107,6 @@ body{
   backdrop-filter: blur(16px);
 }
 #searchInput::placeholder, #searchInputCast::placeholder{ color:var(--text-faint); }
-#searchInput::-webkit-search-decoration,
-#searchInput::-webkit-search-cancel-button,
-#searchInput::-webkit-search-results-button,
-#searchInput::-webkit-search-results-decoration,
-#searchInputCast::-webkit-search-decoration,
-#searchInputCast::-webkit-search-cancel-button,
-#searchInputCast::-webkit-search-results-button,
-#searchInputCast::-webkit-search-results-decoration{
-  -webkit-appearance: none;
-}
 #searchInput:focus, #searchInputCast:focus{
   border-color: var(--border-strong);
   box-shadow: 0 0 0 3px var(--accent-dim);
