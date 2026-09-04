@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#14151a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tournage">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>Tournage</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <h1 id="topbarTitle">Contacts</h1>
+    <button id="lockBtn" class="icon-btn" title="Tout est stocké uniquement sur cet appareil" aria-label="Confidentialité">🔒</button>
+  </header>
+
+  <!-- ===== CONTACTS VIEW ===== -->
+  <section id="view-contacts" class="view">
+    <div class="search-row">
+      <input id="searchInput" type="search" placeholder="Rechercher un nom, un rôle…" autocomplete="off">
+    </div>
+    <div id="chipRow" class="chip-row"></div>
+    <div id="contactList" class="contact-list"></div>
+    <div id="emptyContacts" class="empty-state" hidden>
+      <p>Aucun contact pour l'instant.</p>
+      <p class="empty-sub">Touche + pour ajouter la première personne de l'équipe.</p>
+    </div>
+  </section>
+
+  <!-- ===== TRIPS VIEW ===== -->
+  <section id="view-trips" class="view" hidden>
+    <div class="note-editor-head trips-date-head">
+      <input id="tripDateInput" type="date">
+      <button id="tripTodayBtn" class="mini-btn">Aujourd'hui</button>
+    </div>
+
+    <div id="dayMetaCard" class="day-meta-card">
+      <div class="day-meta-row">
+        <span class="day-meta-icon">📍</span>
+        <input id="dayMetaLocation" type="text" placeholder="Lieu de tournage du jour (adresse du set)">
+      </div>
+      <div class="day-meta-row">
+        <span class="day-meta-icon">🕐</span>
+        <input id="dayMetaStartTime" type="time">
+        <span class="day-meta-label">Heure de début</span>
+      </div>
+    </div>
+
+    <div id="tripListWrap">
+      <div id="tripList" class="trip-list"></div>
+      <div id="emptyTrips" class="empty-state" hidden>
+        <p>Aucun trajet prévu pour ce jour.</p>
+        <p class="empty-sub">Touche + pour ajouter un trajet.</p>
+      </div>
+    </div>
+
+    <button id="showHistoryBtn" class="btn btn-secondary history-link-btn">📋 Historique des trajets validés</button>
+  </section>
+
+  <!-- ===== TRIPS HISTORY VIEW ===== -->
+  <section id="view-trips-history" class="view" hidden>
+    <div class="history-head">
+      <button id="backFromHistoryBtn" class="mini-btn">← Retour</button>
+      <div id="historyTotalKm" class="history-total-km"></div>
+    </div>
+    <div id="tripHistoryList" class="trip-history-list"></div>
+    <div id="emptyHistory" class="empty-state" hidden>
+      <p>Aucun trajet validé pour l'instant.</p>
+    </div>
+  </section>
+
+  <!-- ===== NOTES VIEW ===== -->
+  <section id="view-notes" class="view" hidden>
+    <div class="notes-layout">
+      <div id="noteEditor" class="note-editor">
+        <div class="note-editor-head">
+          <input id="noteDateInput" type="date">
+          <button id="todayBtn" class="mini-btn">Aujourd'hui</button>
+        </div>
+        <textarea id="noteText" placeholder="Note libre de la journée : ambiance, plan de travail, incidents, ce qu'il faut retenir pour demain…"></textarea>
+        <div class="note-saved" id="noteSavedIndicator">Enregistré automatiquement</div>
+      </div>
+      <div class="note-history">
+        <h2>Historique</h2>
+        <div id="noteHistoryList" class="note-history-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SETTINGS VIEW ===== -->
+  <section id="view-settings" class="view" hidden>
+    <div class="settings-block">
+      <h2>Confidentialité</h2>
+      <p class="settings-text">Aucune donnée ne quitte cet appareil : pas de serveur, pas de compte, pas de connexion internet requise. Tout est stocké localement dans ce navigateur.</p>
+    </div>
+    <div class="settings-block">
+      <h2>Sauvegarde</h2>
+      <p class="settings-text">Comme tout est local, une sauvegarde évite de tout perdre si tu changes de téléphone ou vides le navigateur.</p>
+      <button id="exportBtn" class="btn btn-secondary">Exporter une sauvegarde (.json)</button>
+      <label class="btn btn-secondary file-btn">
+        Importer une sauvegarde
+        <input type="file" id="importInput" accept="application/json" hidden>
+      </label>
+    </div>
+    <div class="settings-block">
+      <h2>Fin de tournage</h2>
+      <p class="settings-text">Une fois le tournage terminé, tu peux tout effacer définitivement de cet appareil.</p>
+      <button id="wipeBtn" class="btn btn-danger">Effacer toutes les données</button>
+    </div>
+  </section>
+
+  <nav class="tabbar">
+    <button class="tab-btn active" data-view="contacts">
+      <span class="tab-icon">👥</span><span>Contacts</span>
+    </button>
+    <button class="tab-btn" data-view="trips">
+      <span class="tab-icon">🚗</span><span>Trajets</span>
+    </button>
+    <button class="tab-btn" data-view="notes">
+      <span class="tab-icon">📝</span><span>Notes</span>
+    </button>
+    <button class="tab-btn" data-view="settings">
+      <span class="tab-icon">⚙️</span><span>Réglages</span>
+    </button>
+  </nav>
+
+  <button id="fab" class="fab" aria-label="Ajouter">+</button>
+</div>
+
+<!-- ===== CONTACT FORM MODAL ===== -->
+<div id="contactModal" class="modal" hidden>
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <button id="closeModalBtn" class="icon-btn" aria-label="Fermer">✕</button>
+      <h2 id="modalTitle">Nouveau contact</h2>
+      <button id="deleteContactBtn" class="icon-btn danger" hidden aria-label="Supprimer">🗑</button>
+    </div>
+    <form id="contactForm">
+      <div class="photo-row">
+        <div id="photoPreview" class="photo-preview">👤</div>
+        <label class="btn btn-secondary small-btn file-btn">
+          Ajouter une photo
+          <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+        </label>
+        <button type="button" id="removePhotoBtn" class="mini-btn" hidden>Retirer</button>
+      </div>
+
+      <label class="field">
+        <span>Nom *</span>
+        <input id="fieldName" type="text" required autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span>Téléphone</span>
+        <input id="fieldPhone" type="tel" placeholder="06 12 34 56 78" autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span>Catégorie</span>
+        <select id="fieldCategory">
+          <option value="Comédien">Comédien</option>
+          <option value="Réalisation">Réalisation (mise en scène, AD's)</option>
+          <option value="Production">Production</option>
+          <option value="Régie / Transport">Régie / Transport</option>
+          <option value="Casting">Casting</option>
+          <option value="Image">Image (caméra, vidéo, VFX)</option>
+          <option value="Décor">Décor (art, construction, déco)</option>
+          <option value="Costumes">Costumes</option>
+          <option value="HMC">HMC (Habillage / Maquillage / Coiffure)</option>
+          <option value="Son">Son / Musique</option>
+          <option value="Électro / Machino">Électro / Machino</option>
+          <option value="Cascades / SFX">Cascades / SFX</option>
+          <option value="Locations">Locations</option>
+          <option value="Craft / Catering">Craft / Catering</option>
+          <option value="Post-Production">Post-Production</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </label>
+
+      <label class="field checkbox-field">
+        <input id="fieldFavorite" type="checkbox">
+        <span>⭐ Contact favori (accès rapide)</span>
+      </label>
+
+      <div id="comedienFields" class="comedien-fields" hidden>
+        <div class="section-divider">Détails comédien</div>
+
+        <label class="field">
+          <span>Personnage joué</span>
+          <input id="fieldCharacter" type="text" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Loge</span>
+          <input id="fieldDressing" type="text" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Heure de convocation</span>
+          <input id="fieldCallTime" type="time">
+        </label>
+
+        <div class="section-divider">Prise en charge (conduite)</div>
+
+        <label class="field">
+          <span>Adresse de prise en charge</span>
+          <input id="fieldPickupAddress" type="text" placeholder="Adresse ou point de RDV" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Heure de prise en charge</span>
+          <input id="fieldPickupTime" type="time">
+        </label>
+
+        <label class="field">
+          <span>Notes (costume, maquillage, particularités…)</span>
+          <textarea id="fieldNotes" rows="3" placeholder="Ex : allergie, doublure, ponctualité, préférences en voiture…"></textarea>
+        </label>
+      </div>
+
+      <div id="genericNotesWrap" class="field">
+        <span>Notes</span>
+        <textarea id="fieldNotesGeneric" rows="3" placeholder="Toute info utile sur ce contact"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary save-btn">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== TRIP FORM MODAL ===== -->
+<div id="tripModal" class="modal" hidden>
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <button id="closeTripModalBtn" class="icon-btn" aria-label="Fermer">✕</button>
+      <h2 id="tripModalTitle">Nouveau trajet</h2>
+      <button id="deleteTripBtn" class="icon-btn danger" hidden aria-label="Supprimer">🗑</button>
+    </div>
+    <form id="tripForm">
+      <label class="field">
+        <span>Heure</span>
+        <input id="tripFieldTime" type="time">
+      </label>
+
+      <label class="field">
+        <span>Personne</span>
+        <select id="tripFieldContact">
+          <option value="">— Personne libre (saisie manuelle) —</option>
+        </select>
+      </label>
+
+      <label class="field" id="tripFreeNameWrap">
+        <span>Nom</span>
+        <input id="tripFieldFreeName" type="text" placeholder="Ex : livreur matériel, technicien…" autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span>Départ</span>
+        <input id="tripFieldFrom" type="text" placeholder="Adresse de prise en charge" autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span>Destination</span>
+        <input id="tripFieldTo" type="text" placeholder="Adresse d'arrivée" autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span>Kilométrage</span>
+        <input id="tripFieldKm" type="number" step="0.1" min="0" placeholder="Ex : 12.5" inputmode="decimal">
+      </label>
+
+      <label class="field">
+        <span>Notes</span>
+        <textarea id="tripFieldNotes" rows="2" placeholder="Toute info utile sur ce trajet"></textarea>
+      </label>
+
+      <button type="submit" class="btn btn-primary save-btn">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Tournage — Contacts & Notes",
+  "short_name": "Tournage",
+  "description": "Carnet de contacts et notes de tournage, 100% local et confidentiel.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e0f13",
+  "theme_color": "#14151a",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
