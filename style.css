@@ -95,8 +95,8 @@ body{
   -webkit-appearance: none;
   appearance: none;
   width:100%;
-  padding:13px 15px;
-  border-radius:14px;
+  padding:13px 18px;
+  border-radius:999px;
   border:1px solid var(--border);
   outline:none;
   background:var(--bg-elev);
