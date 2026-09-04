@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#14151a">
+<meta name="theme-color" content="#05070c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,6 +12,9 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>Tournage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,7 +23,7 @@
 
   <header class="topbar">
     <h1 id="topbarTitle">Crew List</h1>
-    <button id="lockBtn" class="icon-btn" title="Tout est stocké uniquement sur cet appareil" aria-label="Confidentialité">🔒</button>
+    <button id="lockBtn" class="icon-btn" title="Tout est stocké uniquement sur cet appareil" aria-label="Confidentialité"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></button>
   </header>
 
   <!-- ===== CREW LIST VIEW ===== -->
@@ -58,11 +61,11 @@
 
     <div id="dayMetaCard" class="day-meta-card">
       <div class="day-meta-row">
-        <span class="day-meta-icon">📍</span>
+        <span class="day-meta-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.7-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></span>
         <input id="dayMetaLocation" type="text" placeholder="Lieu de tournage du jour (adresse du set)">
       </div>
       <div class="day-meta-row">
-        <span class="day-meta-icon">🕐</span>
+        <span class="day-meta-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
         <input id="dayMetaStartTime" type="time">
         <span class="day-meta-label">Heure de début</span>
       </div>
@@ -76,7 +79,7 @@
       </div>
     </div>
 
-    <button id="showHistoryBtn" class="btn btn-secondary history-link-btn">📋 Historique des trajets validés</button>
+    <button id="showHistoryBtn" class="btn btn-secondary history-link-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M8 12.5h8M8 16h5.5"/></svg>Historique des trajets validés</button>
   </section>
 
   <!-- ===== TRIPS HISTORY VIEW ===== -->
@@ -133,19 +136,19 @@
 
   <nav class="tabbar">
     <button class="tab-btn active" data-view="contacts">
-      <span class="tab-icon">🎬</span><span>Crew List</span>
+      <span class="tab-icon-wrap"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="7.5" r="2.3"/><path d="M14.8 12.2c2.6.2 4.7 2.1 4.7 4.8"/></svg></span></span><span class="tab-label">Crew List</span>
     </button>
     <button class="tab-btn" data-view="cast">
-      <span class="tab-icon">🎭</span><span>Comédiens</span>
+      <span class="tab-icon-wrap"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.47 5.13 5.53.8-4 4.03.94 5.6L12 16.4l-4.94 2.66.94-5.6-4-4.03 5.53-.8L12 3.5z"/></svg></span></span><span class="tab-label">Comédiens</span>
     </button>
     <button class="tab-btn" data-view="trips">
-      <span class="tab-icon">🚗</span><span>Trajets</span>
+      <span class="tab-icon-wrap"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="6" r="2.2"/><circle cx="18.5" cy="18" r="2.2"/><path d="M6.8 8.1c.9 2.4 2.7 3.3 5 3.5 3.6.3 5.8 1.6 6.4 4.3"/></svg></span></span><span class="tab-label">Trajets</span>
     </button>
     <button class="tab-btn" data-view="notes">
-      <span class="tab-icon">📝</span><span>Notes</span>
+      <span class="tab-icon-wrap"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M8 12.5h8M8 16h5.5"/></svg></span></span><span class="tab-label">Notes</span>
     </button>
     <button class="tab-btn" data-view="settings">
-      <span class="tab-icon">⚙️</span><span>Réglages</span>
+      <span class="tab-icon-wrap"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="14" cy="7" r="2.2"/><circle cx="7" cy="17" r="2.2"/></svg></span></span><span class="tab-label">Réglages</span>
     </button>
   </nav>
 
@@ -158,11 +161,11 @@
     <div class="modal-head">
       <button id="closeModalBtn" class="icon-btn" aria-label="Fermer">✕</button>
       <h2 id="modalTitle">Nouveau contact</h2>
-      <button id="deleteContactBtn" class="icon-btn danger" hidden aria-label="Supprimer">🗑</button>
+      <button id="deleteContactBtn" class="icon-btn danger" hidden aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15"/><path d="M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7"/><path d="M6.5 6.5 7.3 19a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12.5"/><path d="M10.3 10.5v6M13.7 10.5v6"/></svg></button>
     </div>
     <form id="contactForm">
       <div class="photo-row">
-        <div id="photoPreview" class="photo-preview">👤</div>
+        <div id="photoPreview" class="photo-preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20c.7-4 3.5-6.2 7.5-6.2s6.8 2.2 7.5 6.2"/></svg></div>
         <label class="btn btn-secondary small-btn file-btn">
           Ajouter une photo
           <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
@@ -259,7 +262,7 @@
     <div class="modal-head">
       <button id="closeTripModalBtn" class="icon-btn" aria-label="Fermer">✕</button>
       <h2 id="tripModalTitle">Nouveau trajet</h2>
-      <button id="deleteTripBtn" class="icon-btn danger" hidden aria-label="Supprimer">🗑</button>
+      <button id="deleteTripBtn" class="icon-btn danger" hidden aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15"/><path d="M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7"/><path d="M6.5 6.5 7.3 19a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12.5"/><path d="M10.3 10.5v6M13.7 10.5v6"/></svg></button>
     </div>
     <form id="tripForm">
       <label class="field">
@@ -312,10 +315,10 @@
       <div id="callSheetPhone" class="call-sheet-phone"></div>
     </div>
     <a id="callSheetCallBtn" class="call-sheet-option" href="#">
-      <span class="call-sheet-icon">📞</span> Appeler
+      <span class="call-sheet-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h3.2l1.3 4-2 1.4a11.5 11.5 0 0 0 5.6 5.6l1.4-2 4 1.3V18a1.5 1.5 0 0 1-1.6 1.5C10.6 19 5 13.4 4.5 6.6 4.4 5.5 5 4.5 5 4.5z"/></svg></span> Appeler
     </a>
     <a id="callSheetWhatsAppBtn" class="call-sheet-option" href="#" target="_blank" rel="noopener">
-      <span class="call-sheet-icon">💬</span> WhatsApp
+      <span class="call-sheet-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.2 6.4L4 19.5l1.1-3A7.96 7.96 0 0 1 4 12z"/></svg></span> WhatsApp
     </a>
     <button id="callSheetCancelBtn" type="button" class="call-sheet-cancel">Annuler</button>
   </div>

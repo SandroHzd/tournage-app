@@ -90,6 +90,10 @@ function uid(){
 
 const CATEGORIES = ['Comédien','Réalisation','Production','Régie / Transport','Casting','Image','Décor','Costumes','HMC','Son','Électro / Machino','Cascades / SFX','Locations','Craft / Catering','Post-Production','Autre'];
 
+const ICON_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20c.7-4 3.5-6.2 7.5-6.2s6.8 2.2 7.5 6.2"/></svg>';
+const ICON_STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.47 5.13 5.53.8-4 4.03.94 5.6L12 16.4l-4.94 2.66.94-5.6-4-4.03 5.53-.8L12 3.5z"/></svg>';
+const ICON_PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h3.2l1.3 4-2 1.4a11.5 11.5 0 0 0 5.6 5.6l1.4-2 4 1.3V18a1.5 1.5 0 0 1-1.6 1.5C10.6 19 5 13.4 4.5 6.6 4.4 5.5 5 4.5 5 4.5z"/></svg>';
+
 /* =========================================================
    Init
    ========================================================= */
@@ -230,7 +234,7 @@ function buildContactCard(c){
     img.src = c.photo;
     avatar.appendChild(img);
   } else {
-    avatar.textContent = c.category === 'Comédien' ? '🎭' : '👤';
+    avatar.innerHTML = c.category === 'Comédien' ? ICON_STAR : ICON_PERSON;
   }
 
   const main = document.createElement('div');
@@ -269,7 +273,7 @@ function buildContactCard(c){
   const callBtn = document.createElement('button');
   callBtn.type = 'button';
   callBtn.className = 'call-btn' + (c.phone ? ' enabled' : '');
-  callBtn.textContent = '📞';
+  callBtn.innerHTML = ICON_PHONE;
   callBtn.addEventListener('click', e => {
     e.stopPropagation();
     if (c.phone) openCallSheet(c.name, c.phone);
@@ -432,7 +436,7 @@ function updatePhotoPreview(){
     preview.innerHTML = `<img src="${currentPhotoDataUrl}">`;
     removeBtn.hidden = false;
   } else {
-    preview.textContent = '👤';
+    preview.innerHTML = ICON_PERSON;
     removeBtn.hidden = true;
   }
 }
