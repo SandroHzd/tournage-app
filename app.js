@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindModal();
   bindTripModal();
   bindSettings();
+  bindCallSheet();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});
@@ -265,18 +266,49 @@ function buildContactCard(c){
 
   main.addEventListener('click', () => openContactModal(c.id));
 
-  const callBtn = document.createElement('a');
+  const callBtn = document.createElement('button');
+  callBtn.type = 'button';
   callBtn.className = 'call-btn' + (c.phone ? ' enabled' : '');
   callBtn.textContent = '📞';
-  if (c.phone) {
-    callBtn.href = 'tel:' + c.phone.replace(/\s+/g, '');
-  }
-  callBtn.addEventListener('click', e => e.stopPropagation());
+  callBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (c.phone) openCallSheet(c.name, c.phone);
+  });
 
   card.appendChild(avatar);
   card.appendChild(main);
   card.appendChild(callBtn);
   return card;
+}
+
+/* ---- Feuille de choix Appel / WhatsApp ---- */
+function phoneToWhatsAppDigits(phone){
+  let digits = phone.replace(/[^\d+]/g, '');
+  if (digits.startsWith('+')) return digits.slice(1);
+  if (digits.startsWith('00')) return digits.slice(2);
+  if (digits.startsWith('0')) return '33' + digits.slice(1);
+  return digits;
+}
+
+function openCallSheet(name, phone){
+  document.getElementById('callSheetName').textContent = name;
+  document.getElementById('callSheetPhone').textContent = phone;
+  document.getElementById('callSheetCallBtn').href = 'tel:' + phone.replace(/\s+/g, '');
+  document.getElementById('callSheetWhatsAppBtn').href = 'https://wa.me/' + phoneToWhatsAppDigits(phone);
+  document.getElementById('callSheet').hidden = false;
+}
+
+function closeCallSheet(){
+  document.getElementById('callSheet').hidden = true;
+}
+
+function bindCallSheet(){
+  document.getElementById('callSheet').addEventListener('click', e => {
+    if (e.target.id === 'callSheet') closeCallSheet();
+  });
+  document.getElementById('callSheetCancelBtn').addEventListener('click', closeCallSheet);
+  document.getElementById('callSheetCallBtn').addEventListener('click', closeCallSheet);
+  document.getElementById('callSheetWhatsAppBtn').addEventListener('click', closeCallSheet);
 }
 
 function renderContacts(){
